@@ -32,3 +32,10 @@ for (const key of ["daa", "dab", "dac", "dad"]) {
 for (const key of ["dea", "deb", "dec", "ded"]) {
   assert.equal(lineValue(farDarkField, key), "70", `${key} should be active for far dark field`);
 }
+
+const dome = buildPayload({ ...defaultState(), mode: "dome", dome: 55, activeColor: "red", intensity: 90, white: 80, red: 80, green: 80, blue: 80 });
+assert.equal(lineValue(dome, "rings"), "4", "dome ring mode");
+assert.equal(lineValue(dome, "ha"), "55", "dome intensity channel");
+for (const key of ["waa", "wab", "wac", "wad", "raa", "rab", "rac", "rad", "gaa", "gab", "gac", "gad", "baa", "bab", "bac", "bad"]) {
+  assert.equal(lineValue(dome, key), "101", `${key} should be off for dome`);
+}

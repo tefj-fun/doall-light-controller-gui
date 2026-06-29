@@ -112,6 +112,10 @@ function App() {
     setState((current) => ({ ...current, [key]: value }));
   }
 
+  function updateTransform(transform) {
+    setState((current) => transform(current));
+  }
+
   function queueLivePayload(nextPayload) {
     if (nextPayload === lastLivePayload.current) return;
     setPendingLivePayload(nextPayload);
@@ -119,12 +123,6 @@ function App() {
 
   function commitUpdate(key, value) {
     const nextState = { ...state, [key]: value };
-    setState(nextState);
-    queueLivePayload(buildPayload(nextState));
-  }
-
-  function commitTransform(transform) {
-    const nextState = transform(state);
     setState(nextState);
     queueLivePayload(buildPayload(nextState));
   }
@@ -144,7 +142,7 @@ function App() {
           status={status}
           update={update}
           commitUpdate={commitUpdate}
-          commitTransform={commitTransform}
+          updateTransform={updateTransform}
           onRun={() => send("run")}
           onStop={() => send("stop")}
           onStrobe={strobe}
@@ -153,7 +151,7 @@ function App() {
       );
     }
 
-    return <ConfigureView state={state} update={update} commitUpdate={commitUpdate} commitTransform={commitTransform} activeMode={activeMode} status={status} />;
+    return <ConfigureView state={state} update={update} commitUpdate={commitUpdate} updateTransform={updateTransform} activeMode={activeMode} status={status} />;
   }
 
   return (
@@ -221,11 +219,11 @@ function App() {
   );
 }
 
-function ConfigureView({ state, update, commitUpdate, commitTransform, activeMode, status }) {
+function ConfigureView({ state, update, commitUpdate, updateTransform, activeMode, status }) {
   return (
     <section className="workspace">
-      <DiagramPanel state={state} commitUpdate={commitUpdate} commitTransform={commitTransform} activeMode={activeMode} />
-      <InspectorPanel state={state} update={update} commitUpdate={commitUpdate} commitTransform={commitTransform} status={status} />
+      <DiagramPanel state={state} update={update} updateTransform={updateTransform} activeMode={activeMode} />
+      <InspectorPanel state={state} update={update} commitUpdate={commitUpdate} updateTransform={updateTransform} status={status} />
     </section>
   );
 }
@@ -289,12 +287,12 @@ function ConnectView({ status, busy, onScan, onStop, log }) {
   );
 }
 
-function RunView({ state, activeMode, payload, busy, status, update, commitUpdate, commitTransform, onRun, onStop, onStrobe, log }) {
+function RunView({ state, activeMode, payload, busy, status, update, commitUpdate, updateTransform, onRun, onStop, onStrobe, log }) {
   const payloadLines = payload.trim().split("\n");
 
   return (
     <section className="stepWorkspace runtimeGrid">
-      <DiagramPanel state={state} commitUpdate={commitUpdate} commitTransform={commitTransform} activeMode={activeMode} compact />
+      <DiagramPanel state={state} update={update} updateTransform={updateTransform} activeMode={activeMode} compact />
 
       <aside className="runtimePanel">
         <div className="panelHeader tight">
@@ -358,7 +356,7 @@ function RunView({ state, activeMode, payload, busy, status, update, commitUpdat
   );
 }
 
-function DiagramPanel({ state, commitUpdate, commitTransform, activeMode, compact = false }) {
+function DiagramPanel({ state, update, updateTransform, activeMode, compact = false }) {
   return (
     <section className={`diagramPanel ${compact ? "compact" : ""}`}>
       <div className="panelHeader">
@@ -379,7 +377,7 @@ function DiagramPanel({ state, commitUpdate, commitTransform, activeMode, compac
             key={label}
             className={`quadrant q${index + 1} ${state.quadrants[index] ? "enabled" : ""}`}
             onClick={() =>
-              commitTransform((current) => ({
+              updateTransform((current) => ({
                 ...current,
                 quadrants: current.quadrants.map((item, itemIndex) => (itemIndex === index ? !item : item))
               }))
@@ -397,7 +395,7 @@ function DiagramPanel({ state, commitUpdate, commitTransform, activeMode, compac
 
       <div className="quickModes">
         {MODES.map((mode) => (
-          <button key={mode.id} className={state.mode === mode.id ? "selected" : ""} onClick={() => commitUpdate("mode", mode.id)}>
+          <button key={mode.id} className={state.mode === mode.id ? "selected" : ""} onClick={() => update("mode", mode.id)}>
             <img src={`/doall/${mode.icon}`} alt="" />
             <span>{mode.label}</span>
           </button>
@@ -407,7 +405,7 @@ function DiagramPanel({ state, commitUpdate, commitTransform, activeMode, compac
   );
 }
 
-function InspectorPanel({ state, update, commitUpdate, commitTransform, status }) {
+function InspectorPanel({ state, update, commitUpdate, updateTransform, status }) {
   const intensityActive = state.mode === "solid" || state.mode === "darkfield";
 
   return (
@@ -422,7 +420,7 @@ function InspectorPanel({ state, update, commitUpdate, commitTransform, status }
 
       <div className="modeList">
         {MODES.map((mode) => (
-          <button key={mode.id} className={state.mode === mode.id ? "selected" : ""} onClick={() => commitUpdate("mode", mode.id)}>
+          <button key={mode.id} className={state.mode === mode.id ? "selected" : ""} onClick={() => update("mode", mode.id)}>
             <span className="radioMark" />
             <img src={`/doall/${mode.icon}`} alt="" />
             <span>
@@ -444,7 +442,7 @@ function InspectorPanel({ state, update, commitUpdate, commitTransform, status }
           ["green", "Green"],
           ["blue", "Blue"]
         ]}
-        onChange={(value) => commitUpdate("activeColor", value)}
+        onChange={(value) => update("activeColor", value)}
         disabled={state.mode !== "solid"}
       />
 
@@ -464,7 +462,7 @@ function InspectorPanel({ state, update, commitUpdate, commitTransform, status }
           ["near", "Near"],
           ["far", "Far"]
         ]}
-        onChange={(value) => commitUpdate("darkField", value)}
+        onChange={(value) => update("darkField", value)}
         disabled={state.mode !== "darkfield"}
       />
 
@@ -479,7 +477,7 @@ function InspectorPanel({ state, update, commitUpdate, commitTransform, status }
               checked={state.digital[index]}
               disabled={state.mode !== "digital"}
               onChange={() =>
-                commitTransform((current) => ({
+                updateTransform((current) => ({
                   ...current,
                   digital: current.digital.map((item, itemIndex) => (itemIndex === index ? !item : item))
                 }))
